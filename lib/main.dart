@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:doctor_app/updateHistory.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:doctor_app/login_page.dart';
@@ -7,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:doctor_app/patient.dart';
 import 'package:doctor_app/patientList.dart';
 import 'package:http/http.dart' as http;
+import 'package:doctor_app/removePatient.dart';
 
 void main() => runApp(MyApp());
 
@@ -52,12 +55,48 @@ class MainPage extends StatefulWidget {
   @override
   _MainPageState createState() => _MainPageState();
 }
-SharedPreferences sharedPreferences ;
+
 class _MainPageState extends State<MainPage> {
+  FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
+  String title = "Title";
+  String helper = "helper";
+  SharedPreferences sharedPreferences;
+
+  setFirebaseTokent(fb_token)async{
+    print("the fire base token is ...........");
+    print(fb_token);
+    String firebaseToken = fb_token;
+    sharedPreferences = await SharedPreferences.getInstance();
+    sharedPreferences.setString("firebaseToken", firebaseToken);
+  }
 
   void initState(){
     super.initState();
+    _firebaseMessaging.getToken().then((fb_token){
+      setFirebaseTokent(fb_token);
+    });
+    _firebaseMessaging.configure(
+        onMessage: (Map<String, dynamic> message) async{
+          setState(() {
+            fetchPatients();
+          });
+          print('onMessage : $message');
+        },
+        onLaunch: (Map<String, dynamic> message) async{
+          setState(() {
+            fetchPatients();
+          });
+          print('onMessage : $message');
+        },
+        onResume: (Map<String, dynamic> message) async{
+          setState(() {
+            fetchPatients();
+          });
+          print('onMessage : $message');
+        }
+    );
     CheckLoginStatus();
+    fetchPatients();
   }
   CheckLoginStatus() async{
     sharedPreferences = await SharedPreferences.getInstance();
@@ -69,19 +108,22 @@ class _MainPageState extends State<MainPage> {
   ///////////////////
   List<Patient> parsePatients(String responseBody) {
     final parsed = json.decode(responseBody).cast<Map<String, dynamic>>();
-
     return parsed.map<Patient>((json) => Patient.fromJson(json)).toList();
   }
 
   Future<List<Patient>> fetchPatients() async {
     String token = sharedPreferences.getString('accessToken');
-    final response = await http.post('http://bbb9ababee97.ngrok.io/auth/waitinglist',headers: <String, String>{
+    final response = await http.post('http://240aedc662a2.ngrok.io/auth/waitinglist',headers: <String, String>{
       'Content-Type': 'application/json; charset=UTF-8',
       'Authorization': 'Bearer '+token
     });
 
     // compute function to run parsePosts in a separate isolate
-    return parsePatients(response.body);
+    List<Patient> patietns = parsePatients(response.body);
+    print(patietns.first.position);
+    patietns.sort((a,b)=> a.position.compareTo(b.position));
+    print(patietns.first.position);
+    return patietns;
   }
   /////////////////////
 
@@ -91,6 +133,23 @@ class _MainPageState extends State<MainPage> {
         title: Text(content),
       );
     });
+  }
+  firebaseTokenUnregistration() async{
+    String fb_token =sharedPreferences.getString("firebaseToken");
+    String token = sharedPreferences.getString('accessToken');
+    var response = await http.post("http://240aedc662a2.ngrok.io/api/auth/firebase_token_unregistration",
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+          //'Authorization': 'Bearer '+token
+        },body: json.encode(<String, String>{
+          'firebaseToken':fb_token,
+          'authorization':token
+        }));
+    if(response.statusCode == 200){
+      setState(() {
+        sharedPreferences.setString("accessToken", null);
+      });
+    }
   }
 
 
@@ -108,23 +167,35 @@ class _MainPageState extends State<MainPage> {
       appBar: AppBar(
         title: const Text('Doctor App'),
         actions: <Widget>[
-
           IconButton(
             icon: Icon(Icons.refresh),
             onPressed: () {
-
-              fetchPatients();
+              setState((){
+                fetchPatients();
+              });
             },
-          )
+          ),
+          IconButton(
+            icon: Icon(Icons.find_replace),
+            onPressed: (){
+              Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (BuildContext context) => UpdateHistory()),(route) => true);
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.close),
+            onPressed: (){
+              firebaseTokenUnregistration();
+              Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (BuildContext context) => LoginPage()),(route) => true);
+            },
+          ),
         ],
       ),
-      body: FutureBuilder<List<Patient>>(
+      body: new FutureBuilder<List<Patient>>(
         future: fetchPatients(),
         builder: (context, snapshot) {
           if (snapshot.hasError) print(snapshot.error);
-
-          return snapshot.hasData
-              ? new ListViewPatients(patients: snapshot.data) // return the ListView widget
+            return snapshot.hasData
+              ? new ListViewPatients(patients: snapshot.data)
               : Center(child: CircularProgressIndicator());
         },
       ),

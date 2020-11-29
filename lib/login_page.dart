@@ -13,7 +13,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
-
+  SharedPreferences sharedPreferences;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -41,8 +41,8 @@ class _LoginPageState extends State<LoginPage> {
 
   singIn(String email,password) async{
 
-    SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
-    var response = await http.post("http://bbb9ababee97.ngrok.io/api/auth/signin",
+    sharedPreferences = await SharedPreferences.getInstance();
+    var response = await http.post("http://240aedc662a2.ngrok.io/api/auth/signin",
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },body: json.encode(<String, String>{
@@ -50,22 +50,49 @@ class _LoginPageState extends State<LoginPage> {
           'password':password
         }));
     var jsonData;
-    if(response.statusCode == 200){
-      jsonData = json.decode(response.body);
-      //if(jsonData['']){
-        print(response.body);
+    jsonData = json.decode(response.body);
+    //if(jsonData['']){
+    print("singin body result is :" );
+    print(response.body);
+    print(jsonData['roles']);
+    var role = jsonData['roles'];
+    if(response.statusCode == 200 && role.toString() == '[ROLE_DOCTOR]'){
+      print('im inside');
         setState(() {
           _isLoading = false;
         });
         sharedPreferences.setString("accessToken", jsonData['accessToken']);
+        firebaseTokenRegistration(jsonData['accessToken']);
         Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (BuildContext context) => MainPage()),
-            (route) => false);
-      }
-    /*}else{
-      print(response.body);
-    }*/
+            MaterialPageRoute(builder: (BuildContext context) => MainPage()), (route) => false);
+      setState(() {
+        _isLoading = false;
+      });
+      } else{
+      setState(() {
+        _isLoading = false;
+      });
+      sharedPreferences.setString("accessToken", null);
+      Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (BuildContext context) => MainPage()), (route) => true);
+    }
   }
+
+  firebaseTokenRegistration(String token) async{
+    String fb_token =sharedPreferences.getString("firebaseToken");
+    //String token = sharedPreferences.getString('accessToken');
+    print("this is the firebaseToken"+fb_token);
+    print("and this is the accessToken"+token);
+    var response = await http.post("http://240aedc662a2.ngrok.io/api/auth/firebase_token_registration",
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer '+token
+        },body: json.encode(<String, String>{
+          'firebaseToken':fb_token,
+          'authorization':token
+        }));
+  }
+
   Container buttonSection(){
     return Container(
         width: MediaQuery.of(context).size.width,

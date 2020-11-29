@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "189922086773",
+    "firebase_url": "https://iedss-notification-manager.firebaseio.com",
+    "project_id": "iedss-notification-manager",
+    "storage_bucket": "iedss-notification-manager.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:189922086773:android:8db8294af32977b9354d3c",
+        "android_client_info": {
+          "package_name": "com.iedss.doctor_app.doctor_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "189922086773-qve6d36d04ouu4lqkn73vfbdfqmvr54t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDisMKiUURi_IUtTWERR_1uBQGX9sdPHBI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "189922086773-qve6d36d04ouu4lqkn73vfbdfqmvr54t.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
